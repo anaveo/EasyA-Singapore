@@ -67,7 +67,7 @@ body {
 
 /* First button = "Compose"-style */
 .sidebar a:first-child {
-  background-color: #8400ff;
+  background-color: #7f7fc7;
   color: white;
   font-weight: bold;
   border-radius: 24px;
@@ -76,7 +76,7 @@ body {
 }
 
 .sidebar a:first-child:hover {
-  background-color: rgb(208, 0, 255);
+  background-color: #aaaad8;
 }
 
 

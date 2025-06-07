@@ -1,5 +1,14 @@
 FROM python:3.10-slim
 
+# Install system dependencies required to build PyNaCl and other packages
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libffi-dev \
+    libssl-dev \
+    python3-dev \
+    cargo \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
 # Copy app folder contents into /app

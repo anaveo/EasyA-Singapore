@@ -7,6 +7,7 @@ import LoginPage from "./pages/LoginPage";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "./firebase";
 import "./App.css";
+import AccountPage from "./pages/AccountPage";
 
 function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -30,7 +31,7 @@ function App() {
           <button className="menu-button" onClick={() => setSidebarOpen(!sidebarOpen)}>
             ☰
           </button>
-          <h1 className="app-title">Shypto</h1>
+          <h1 className="app-title">$hypto</h1>
         </header>
 
         <div className="main-layout">
@@ -38,7 +39,7 @@ function App() {
             <nav className={`sidebar ${sidebarOpen ? "open" : ""}`}>
               <Link to="/create-escrow" onClick={() => setSidebarOpen(false)}>New Shipment</Link>
               <Link to="/" onClick={() => setSidebarOpen(false)}>My Shipments</Link>
-              <Link to="/create-escrow" onClick={() => setSidebarOpen(false)}>My Account</Link>
+              <Link to="/account-page" onClick={() => setSidebarOpen(false)}>My Account</Link>
             </nav>
           )}
 
@@ -48,6 +49,7 @@ function App() {
               {user ? (
                 <>
                   <Route path="/create-escrow" element={<CreateEscrowPage />} />
+                  <Route path="/account-page" element={<AccountPage />} />
                   <Route path="/" element={<ShipmentsListPage />} />
                   <Route path="/dashboard/:shipmentId" element={<ShipmentDashboard />} />
                 </>
