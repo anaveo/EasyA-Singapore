@@ -1,45 +1,28 @@
-# === Python ===
+# Python environment
 __pycache__/
 *.py[cod]
-*.egg
-*.egg-info/
-dist/
-build/
-.env
-
-# === Docker ===
+*.pyo
+*.pyd
 *.log
-*.pid
-Dockerfile~
-docker-compose.override.yml
 
-# === Firebase Credentials ===
+# Flask/Python dependencies
+.env
+venv/
+env/
+instance/
+*.sqlite3
+
+# Firebase credentials
 serviceAccountKey.json
 
-# === Environment Files ===
-.env
-.env.*
+# Docker and build files
+*.db
+*.bak
+*.pid
+*.sock
 
-# === VSCode ===
-.vscode/
-
-# === OS/Editor Files ===
+# Editor and system files
 .DS_Store
-Thumbs.db
-.idea/
 *.swp
-
-# === Virtual Environments ===
-venv/
-.env/
-*.venv/
-
-# === React Native (if in same repo) ===
-node_modules/
-android/
-ios/
-*.keystore
-*.gradle
-*.xcworkspace
-*.xcodeproj
-yarn.lock
+.vscode/
+.idea/
