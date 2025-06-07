@@ -1,12 +1,16 @@
 import firebase_admin
 from firebase_admin import credentials, db
 from config import FIREBASE_DB
+import random
+import string
 
 cred = credentials.Certificate("serviceAccountKey.json")
 firebase_admin.initialize_app(cred, {
     'databaseURL': FIREBASE_DB
 })
 
+def generate_shipment_id():
+    return "sid" + ''.join(random.choices(string.digits, k=8))
 
 def get_event_data(shipment_id):
     if not shipment_id:
@@ -93,7 +97,7 @@ def assign_shipment_to_user(uid, shipment_id):
 
 
 def update_claim_status(shipment_id, status):
-    VALID_STATUSES = {"approved", "rejected", "pending"}
+    VALID_STATUSES = {"approved", "rejected", "pending", "N/A"}
 
     if status not in VALID_STATUSES:
         print(f"Invalid claim status: {status}")
@@ -119,3 +123,33 @@ def get_claim_status(shipment_id):
     except Exception as e:
         print("Firebase error:", e)
         return {}
+    
+def store_escrow_metadata(shipment_id, data: dict):
+    if not shipment_id:
+        print("Invalid input: Missing shipment ID")
+        return False
+    
+    ref = db.reference(f"shipments/{shipment_id}")
+    try:
+        ref.update(data)
+        return True
+    except Exception as e:
+        print("Firebase error (store_escrow_metadata):", e)
+        return False
+
+
+def create_shipment(owner_id, name, device_id, premium, payout, condition, sequence):
+    ref = db.reference("/shipments")
+    shipment_id = generate_shipment_id()
+    data = {
+        "owner_id": owner_id,
+        "shipment_name": name,
+        "device_id": device_id,
+        "premium": premium,
+        "payout": payout,
+        "condition": condition,
+        "escrow_sequence": sequence,
+        "claim_status": "N/A"
+    }
+    ref.child(shipment_id).set(data)
+    return shipment_id

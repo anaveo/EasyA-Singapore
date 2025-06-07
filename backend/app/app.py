@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from escrow_utils import create_escrow, fulfill_escrow
+from escrow_utils import create_escrow_with_premium, fulfill_escrow, cancel_escrow
 from firebase_client import (
     get_event_data,
     get_shipments_by_uid,
@@ -8,7 +8,8 @@ from firebase_client import (
     get_latest_device_data,
     assign_shipment_to_user,
     update_claim_status,
-    get_claim_status
+    get_claim_status,
+    create_shipment
 )
 import asyncio
 
@@ -21,18 +22,49 @@ def home():
 
 
 # Creates conditional escrow TODO: move to XRPL utility
-@app.route("/create_escrow", methods=["POST"])
-def create_escrow_route():
-    data = request.get_json()
-    destination = data.get("destination")
-    amount = float(data.get("amount", 50))
+from firebase_client import create_shipment
+from escrow_utils import create_escrow_with_premium  # replace old import
 
-    if not destination:
-        return jsonify({"error": "Missing destination address"}), 400
+@app.route("/create_escrow", methods=["POST"])
+def create_conditional_escrow_route():
+    data = request.get_json()
+    premium = float(data.get("premium", 2))
+    payout = float(data.get("payout", 5))
+    customer_seed = data.get("customer_seed")
+    destination = data.get("destination")
+    return_addr = data.get("return_address")
+    condition = int(data.get("condition", 0))  # integer from 0 to 5
+    shipment_name = data.get("shipment_name")
+    device_id = data.get("device_id")
+    owner_id = data.get("owner_id")
+
+    if not all([customer_seed, destination, return_addr, shipment_name, device_id, owner_id]):
+        return jsonify({"error": "Missing required fields"}), 400
 
     try:
-        result = asyncio.run(create_escrow(destination, amount))
-        return jsonify(result)
+        result = asyncio.run(create_escrow_with_premium(
+            customer_seed=customer_seed,
+            platform_address=return_addr,
+            premium=premium,
+            payout=payout,
+            destination_address=destination
+        ))
+
+        shipment_id = create_shipment(
+            owner_id=owner_id,
+            name=shipment_name,
+            device_id=device_id,
+            premium=premium,
+            payout=payout,
+            condition=condition,
+            sequence=result["sequence"]
+        )
+
+        return jsonify({
+            "shipment_id": shipment_id,
+            "escrow_tx": result,
+            "status": "Shipment and escrow created"
+        })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -41,13 +73,50 @@ def create_escrow_route():
 @app.route("/fulfill_escrow", methods=["POST"])
 def fulfill_escrow_route():
     data = request.get_json()
-    sequence = data.get("sequence")
+    shipment_id = data.get("shipment_id")
 
-    if sequence is None:
-        return jsonify({"error": "Missing escrow sequence number"}), 400
+    if not shipment_id:
+        return jsonify({"error": "Missing shipment_id"}), 400
+
+    shipment = get_shipment_data(shipment_id)
+    sequence = shipment.get("escrow_sequence")
+
+    if not sequence:
+        return jsonify({"error": "No escrow sequence found for shipment"}), 400
 
     try:
         result = asyncio.run(fulfill_escrow(int(sequence)))
+        update_claim_status(shipment_id, "approved")
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+# Cancels conditional escrow
+@app.route("/cancel_escrow", methods=["POST"])
+def cancel_escrow_route():
+    data = request.get_json()
+    shipment_id = data.get("shipment_id")
+    reason = data.get("reason", "").lower()
+
+    if not shipment_id:
+        return jsonify({"error": "Missing shipment_id"}), 400
+
+    shipment = get_shipment_data(shipment_id)
+    sequence = shipment.get("escrow_sequence")
+
+    if not sequence:
+        return jsonify({"error": "No escrow sequence found for shipment"}), 400
+
+    try:
+        result = asyncio.run(cancel_escrow(int(sequence)))
+
+        # Set claim status based on reason
+        if "success" in reason:
+            update_claim_status(shipment_id, "N/A")
+        else:
+            update_claim_status(shipment_id, "rejected")
+
         return jsonify(result)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
