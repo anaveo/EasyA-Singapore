@@ -13,7 +13,17 @@ function ShipmentsListPage() {
     const fetchShipments = async () => {
       try {
         const res = await axios.get(`${apiBase}/shipments?owner_id=${uid}`);
-        setShipments(res.data);
+        const data = res.data;
+        console.log("shipment")
+
+        // Convert { id1: {...}, id2: {...} } → [{ id: id1, ... }, ...]
+        const shipmentList = Object.entries(data || {}).map(([id, val]) => ({
+          id,
+          ...val,
+        }));
+
+        setShipments(shipmentList);
+        console.log("Fetched shipments:", res.data);
       } catch (err) {
         console.error("Error fetching shipments:", err);
       }
@@ -24,13 +34,16 @@ function ShipmentsListPage() {
 
   return (
     <div style={{ padding: "2rem" }}>
-      <h1>📦 Alice's Shipments</h1>
+      <h1>Alice's Shipments</h1>
       <div style={{ display: "flex", flexWrap: "wrap", gap: "1rem" }}>
-        {shipments.map((shipment) => (
+        {shipments.length === 0 ? (
+          <p>No shipments found.</p>
+        ) : (
+        shipments.map((shipment) => (
           <div
             key={shipment.id}
             style={{
-              border: "2px solid #1a73e8",
+              border: "2px rgba(255, 47, 0, 0.73)",
               borderRadius: "8px",
               padding: "1rem",
               backgroundColor: "#fff",
@@ -45,10 +58,12 @@ function ShipmentsListPage() {
             <p><strong>Claim:</strong> {shipment.claim_status}</p>
             <p><strong>Escrow Seq:</strong> {shipment.escrow_sequence || "N/A"}</p>
           </div>
-        ))}
+        )))}
       </div>
     </div>
   );
 }
 
 export default ShipmentsListPage;
+
+// 1234

@@ -37,10 +37,12 @@ def get_latest_device_data(device_id):
 
         events = log_data.get("events", {})
         location = log_data.get("location", {})
+        timestamp = log_data.get("timestamp", {})
 
         return {
             "events": events,
-            "location": location
+            "location": location,
+            "timestamp": timestamp
         }
     except Exception as e:
         print("Firebase error:", e)

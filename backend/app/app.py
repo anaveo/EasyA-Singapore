@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 from escrow_utils import create_escrow, fulfill_escrow
 from firebase_client import (
     get_event_data,
@@ -12,6 +13,7 @@ from firebase_client import (
 import asyncio
 
 app = Flask(__name__)
+CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}})
 
 @app.route("/")
 def home():

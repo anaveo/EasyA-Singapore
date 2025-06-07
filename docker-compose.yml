@@ -8,12 +8,14 @@ services:
       - ./backend/.env
     volumes:
       - ./backend/app:/app
-
   frontend:
     build: ./frontend
     ports:
       - "3000:3000"
-    depends_on:
-      - backend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules   # Prevents overwriting node_modules in container
     environment:
-      - REACT_APP_API=http://backend:5000
+      - CHOKIDAR_USEPOLLING=true
+    command: npm start
+

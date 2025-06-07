@@ -1,8 +1,8 @@
 /* src/App.css */
 body {
   margin: 0;
-  font-family: "Segoe UI", "Helvetica Neue", sans-serif;
-  background-color: #f4f7fa;
+  font-family: "Roboto", sans-serif;
+  background-color: #f0f0ff;
   color: #333;
 }
 
@@ -15,7 +15,7 @@ body {
 .topbar {
   display: flex;
   align-items: center;
-  background-color: #1a73e8;
+  background-color: #000000;
   color: white;
   padding: 0.75rem 1rem;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -32,39 +32,53 @@ body {
 
 .app-title {
   margin: 0;
-  font-size: 1.25rem;
+  font-size: 1.75rem;
 }
 
 .main-layout {
   display: flex;
-  flex: 1;
+  flex: 3;
 }
 
 .sidebar {
-  width: 0;
-  overflow: hidden;
-  background-color: #ffffff;
-  border-right: 1px solid #ddd;
-  transition: width 0.3s ease;
-  padding: 0;
-}
-
-.sidebar.open {
-  width: 200px;
+  width: 220px;
+  background-color: #f1f3f4;
   padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  font-size: 1.1rem;
+  border-right: 1px solid #ccc;
+  height: 100vh;
 }
 
 .sidebar a {
-  display: block;
-  margin-bottom: 1rem;
-  color: #1a73e8;
   text-decoration: none;
-  font-weight: 500;
+  color: #333;
+  font-size: 1.1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  transition: background-color 0.2s;
 }
 
 .sidebar a:hover {
-  text-decoration: underline;
+  background-color: #e0e0e0;
 }
+
+/* First button = "Compose"-style */
+.sidebar a:first-child {
+  background-color: #8400ff;
+  color: white;
+  font-weight: bold;
+  border-radius: 24px;
+  font-size: 1.2rem;
+  text-align: center;
+}
+
+.sidebar a:first-child:hover {
+  background-color: rgb(208, 0, 255);
+}
+
 
 .content {
   flex: 1;

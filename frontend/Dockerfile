@@ -7,9 +7,6 @@ RUN npm install
 
 COPY . .
 
-RUN npm run build
-
-RUN npm install -g serve
-CMD ["serve", "-s", "build", "-l", "3000"]
-
+# No build step here! Just run dev server
 EXPOSE 3000
+CMD ["npm", "start"]

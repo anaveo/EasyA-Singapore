@@ -21,14 +21,15 @@ function App() {
 
         <div className="main-layout">
           <nav className={`sidebar ${sidebarOpen ? "open" : ""}`}>
-            <Link to="/" onClick={() => setSidebarOpen(false)}>📦 My Shipments</Link>
-            <Link to="/create-escrow" onClick={() => setSidebarOpen(false)}>🔐 Create Escrow</Link>
+            <Link to="/create-escrow" onClick={() => setSidebarOpen(false)}>New Shipment</Link>
+            <Link to="/" onClick={() => setSidebarOpen(false)}>My Shipments</Link>
+            <Link to="/create-escrow" onClick={() => setSidebarOpen(false)}>My Account</Link>
           </nav>
 
           <main className="content">
             <Routes>
-              <Route path="/" element={<ShipmentsListPage />} />
               <Route path="/create-escrow" element={<CreateEscrowPage />} />
+              <Route path="/" element={<ShipmentsListPage />} />
               <Route path="/dashboard/:shipmentId" element={<ShipmentDashboard />} />
             </Routes>
           </main>
