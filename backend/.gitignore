@@ -1,0 +1,45 @@
+# === Python ===
+__pycache__/
+*.py[cod]
+*.egg
+*.egg-info/
+dist/
+build/
+.env
+
+# === Docker ===
+*.log
+*.pid
+Dockerfile~
+docker-compose.override.yml
+
+# === Firebase Credentials ===
+serviceAccountKey.json
+
+# === Environment Files ===
+.env
+.env.*
+
+# === VSCode ===
+.vscode/
+
+# === OS/Editor Files ===
+.DS_Store
+Thumbs.db
+.idea/
+*.swp
+
+# === Virtual Environments ===
+venv/
+.env/
+*.venv/
+
+# === React Native (if in same repo) ===
+node_modules/
+android/
+ios/
+*.keystore
+*.gradle
+*.xcworkspace
+*.xcodeproj
+yarn.lock

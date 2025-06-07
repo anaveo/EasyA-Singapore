@@ -1,0 +1,5 @@
+flask
+firebase-admin
+xrpl-py>=4.0.0
+python-dotenv
+cryptoconditions
