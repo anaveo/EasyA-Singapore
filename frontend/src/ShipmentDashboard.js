@@ -1,24 +1,31 @@
-import React, { useState } from "react";
+// src/ShipmentDashboard.js
+import React, { useEffect, useState } from "react";
 import axios from "axios";
+import { useParams } from "react-router-dom";
 
 function ShipmentDashboard() {
-  const [shipmentId, setShipmentId] = useState("");
+  const { shipmentId } = useParams();
   const [data, setData] = useState(null);
   const [claim, setClaim] = useState(null);
   const [loading, setLoading] = useState(false);
 
   const apiBase = process.env.REACT_APP_API || "http://localhost:5000";
 
-  const fetchShipment = async () => {
-    setLoading(true);
-    try {
-      const res = await axios.get(`${apiBase}/shipment/${shipmentId}`);
-      setData(res.data);
-    } catch (err) {
-      console.error("Error fetching shipment", err);
-    }
-    setLoading(false);
-  };
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const res = await axios.get(`${apiBase}/shipment/${shipmentId}`);
+        setData(res.data);
+      } catch (err) {
+        console.error("Error loading shipment data", err);
+        setData(null);
+      }
+      setLoading(false);
+    };
+
+    fetchData();
+  }, [shipmentId]);
 
   const triggerClaim = async () => {
     setLoading(true);
@@ -27,24 +34,21 @@ function ShipmentDashboard() {
       setClaim(res.data);
     } catch (err) {
       console.error("Claim error", err);
+      setClaim({ error: "Claim failed" });
     }
     setLoading(false);
   };
 
   return (
-    <div style={{ padding: "2rem", fontFamily: "Arial, sans-serif" }}>
-      <h2>📦 Shipment Dashboard</h2>
-      <input
-        placeholder="Enter Shipment ID"
-        value={shipmentId}
-        onChange={(e) => setShipmentId(e.target.value)}
-      />
-      <button onClick={fetchShipment} disabled={!shipmentId || loading}>Load Data</button>
-      <button onClick={triggerClaim} disabled={!shipmentId || loading}>Evaluate Claim</button>
+    <div style={{ padding: "2rem" }}>
+      <h2>📦 Shipment: {shipmentId}</h2>
+      <button onClick={triggerClaim} disabled={loading}>
+        Evaluate Claim
+      </button>
 
       {data && (
         <div style={{ marginTop: "1rem" }}>
-          <h4>Shock Values</h4>
+          <h4>Sensor Data</h4>
           <pre>{JSON.stringify(data.shock_values, null, 2)}</pre>
         </div>
       )}
@@ -54,7 +58,11 @@ function ShipmentDashboard() {
           <h4>Claim Result</h4>
           <pre>{JSON.stringify(claim, null, 2)}</pre>
           {claim.tx_hash && (
-            <a href={`https://testnet.xrpl.org/transactions/${claim.tx_hash}`} target="_blank" rel="noreferrer">
+            <a
+              href={`https://testnet.xrpl.org/transactions/${claim.tx_hash}`}
+              target="_blank"
+              rel="noreferrer"
+            >
               View on XRPL ↗
             </a>
           )}

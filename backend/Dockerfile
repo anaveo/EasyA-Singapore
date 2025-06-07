@@ -1,20 +1,20 @@
-# Dockerfile
-
 FROM python:3.10-slim
 
-# Set workdir
 WORKDIR /app
 
-# Copy files
+# Copy app folder contents into /app
 COPY app /app
-COPY requirements.txt /app
-COPY serviceAccountKey.json /app/serviceAccountKey.json
+
+# Copy serviceAccountKey.json into /app
+# COPY serviceAccountKey.json /app/serviceAccountKey.json
 
 # Install dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+COPY requirements.txt /app
+RUN pip install -r requirements.txt
 
 # Expose Flask port
 EXPOSE 5000
 
 # Run the app
-CMD ["python", "app.py"]
+ENV FLASK_APP=app.py
+CMD ["flask", "run", "--host=0.0.0.0", "--port=5000"]
