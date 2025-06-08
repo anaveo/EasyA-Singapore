@@ -1,6 +1,18 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 
 function AccountPage() {
+
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    // 1. Clear session data
+    localStorage.removeItem("token");  // or sessionStorage.clear(), etc.
+
+    // 2. Navigate to login and replace history
+    navigate("/login", { replace: true });
+  };
+
   const user = {
     name: "user",
     email: "user@user.com",
@@ -82,7 +94,7 @@ function AccountPage() {
           style={buttonStyle}
           onMouseOver={(e) => (e.target.style.backgroundColor = "#aaaad8")}
           onMouseOut={(e) => (e.target.style.backgroundColor = "#7f7fc7")}
-          onClick={() => alert("Logging out...")}
+          onClick={handleLogout}
         >
           Logout
         </button>
