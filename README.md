@@ -2,8 +2,9 @@
 
 **Shypto** provides automated, condition-based cargo insurance for global shipments using real-time sensor tracking and decentralized finance. It leverages the XRP Ledger to enable fast, secure, and programmable insurance payouts—especially for high-risk or high-value goods.
 
-![shypto_banner](assets/Shypto_Mockup_2.jpeg.png)
+## Demo Video:
 
+[![Watch the demo](assets/Shypto_Mockup_2.jpeg.png)](assets/Video_Shypto_Compressed.mp4)
 ---
 
 ## Problem Statement
