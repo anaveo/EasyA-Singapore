@@ -9,6 +9,12 @@ import { auth } from "./firebase";
 import "./App.css";
 import AccountPage from "./pages/AccountPage";
 
+function PrivateRoute({ children }) {
+  const token = localStorage.getItem("token");
+
+  return token ? children : <Navigate to="/login" replace />;
+}
+
 function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [user, setUser] = useState(null);
@@ -48,10 +54,10 @@ function App() {
               <Route path="/login" element={<LoginPage />} />
               {user ? (
                 <>
-                  <Route path="/create-escrow" element={<CreateEscrowPage />} />
-                  <Route path="/account-page" element={<AccountPage />} />
-                  <Route path="/" element={<ShipmentsListPage />} />
-                  <Route path="/dashboard/:shipmentId" element={<ShipmentDashboard />} />
+                  <Route path="/create-escrow" element={<PrivateRoute> <CreateEscrowPage /> </PrivateRoute>} />
+                  <Route path="/account-page" element={<PrivateRoute><AccountPage /></PrivateRoute>} />
+                  <Route path="/" element={<PrivateRoute><ShipmentsListPage /></PrivateRoute>} />
+                  <Route path="/dashboard/:shipmentId" element={<PrivateRoute><ShipmentDashboard /></PrivateRoute>} />
                 </>
               ) : (
                 <Route path="*" element={<Navigate to="/login" />} />
