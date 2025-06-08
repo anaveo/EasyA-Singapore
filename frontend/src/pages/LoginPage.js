@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { signInWithEmailAndPassword } from "firebase/auth";
+import { createUserWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../firebase";
 import "../App.css";
 
@@ -10,6 +11,28 @@ function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
+
+  const handleRegister = async (e) => {
+    e.preventDefault();
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const idToken = await userCredential.user.getIdToken();
+
+      // Call backend to initialize user defaults
+      await fetch("http://localhost:5000/init_user_defaults", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${idToken}`
+        },
+        body: JSON.stringify({ email })
+      });
+
+      navigate("/");
+    } catch (err) {
+      setError("Registration failed. Email may already be in use.");
+    }
+  };
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -41,6 +64,7 @@ function LoginPage() {
           required
         />
         <button type="submit">Sign In</button>
+        <button onClick={handleRegister} type="button">Register</button>
       </form>
     </div>
   );

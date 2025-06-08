@@ -1,8 +1,9 @@
 import React, { useState } from "react";
+import { auth } from "../firebase";
+import { useNavigate } from "react-router-dom";
 
-function CreateShipmentPage() {
+function CreateEscrowPage() {
   const [shipment, setShipment] = useState({
-    ownerId: "uid1",
     shipmentName: "",
     deviceId: "SQT-2808",
     premium: "",
@@ -12,21 +13,56 @@ function CreateShipmentPage() {
     claimStatus: "N/A",
   });
 
+  const navigate = useNavigate();
+
+
   const handleChange = (e) => {
     setShipment({ ...shipment, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Submitting shipment:", shipment);
-    setShipment({
-      recipient: "",
-      origin: "",
-      destination: "",
-      description: "",
-      date: "",
-      amount: "",
-    });
+    const user = auth.currentUser;
+
+    if (!user) {
+      alert("You must be logged in.");
+      return;
+    }
+
+    const idToken = await user.getIdToken();
+
+    const payload = {
+      premium: parseFloat(shipment.premium),
+      payout: parseFloat(shipment.payout),
+      customer_seed: "sEdTR3zoMojyWirT4bB6D9FN1LbHKfh", // replace during dev
+      destination: "rJ76R7wNbZL9T1obJcovyiDMh7fZuWV3wz",
+      return_address: "rwEBoKh6i9DCAMQfFQhyrHCz9uxoYCgfdg",
+      condition: parseInt(shipment.condition, 10),
+      shipment_name: shipment.shipmentName,
+      device_id: shipment.deviceId
+    };
+  console.log("Final Payload:", JSON.stringify(payload, null, 2));
+
+    try {
+      const apiBase = process.env.REACT_APP_API || "http://localhost:5000";
+      const res = await fetch(`${apiBase}/create_escrow`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || "Unknown error");
+
+      alert("Shipment created successfully!");
+      navigate("/");
+    } catch (err) {
+      console.error("Creation failed:", err);
+      alert("Error: " + err.message);
+    }
   };
 
   const inputStyle = {
@@ -103,4 +139,4 @@ function CreateShipmentPage() {
   );
 }
 
-export default CreateShipmentPage;
+export default CreateEscrowPage;
