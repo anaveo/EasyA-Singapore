@@ -1,5 +1,6 @@
 import firebase_admin
 from firebase_admin import credentials, db
+from datetime import datetime
 from config import FIREBASE_DB
 import random
 import string
@@ -153,3 +154,17 @@ def create_shipment(owner_id, name, device_id, premium, payout, condition, seque
     }
     ref.child(shipment_id).set(data)
     return shipment_id
+
+
+def create_user_defaults(uid, email):
+    try:
+        ref = db.reference(f"/users/{uid}")
+        ref.set({
+            "email": email,
+            "owned_devices": {},
+            "created_at": datetime.utcnow().isoformat()
+        })
+        return True
+    except Exception as e:
+        print("Firebase error (create_user_defaults):", e)
+        return False

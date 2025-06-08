@@ -1,5 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+import asyncio
+
 from escrow_utils import create_escrow_with_premium, fulfill_escrow, cancel_escrow
 from firebase_client import (
     get_event_data,
@@ -9,9 +11,11 @@ from firebase_client import (
     assign_shipment_to_user,
     update_claim_status,
     get_claim_status,
-    create_shipment
+    create_shipment,
+    create_user_defaults
 )
-import asyncio
+
+from firebase_admin import auth as firebase_auth
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}})
@@ -21,26 +25,71 @@ def home():
     return jsonify({"status": "OK", "message": "XRPL insurance backend running"})
 
 
-# Creates conditional escrow TODO: move to XRPL utility
-from firebase_client import create_shipment
-from escrow_utils import create_escrow_with_premium  # replace old import
+# Token extraction helper
+def get_user_from_token():
+    auth_header = request.headers.get("Authorization", "")
+    if not auth_header.startswith("Bearer "):
+        return None
 
+    id_token = auth_header.split("Bearer ")[1]
+    try:
+        decoded_token = firebase_auth.verify_id_token(id_token)
+        return decoded_token["uid"]
+    except Exception as e:
+        print(f"[auth] Token verification failed: {e}")
+        return None
+
+
+# Initialize defaults for new user
+@app.route("/init_user_defaults", methods=["POST"])
+def init_user_defaults_route():
+    auth_header = request.headers.get("Authorization", "")
+    if not auth_header.startswith("Bearer "):
+        return jsonify({"error": "Missing or invalid token"}), 401
+
+    id_token = auth_header.split("Bearer ")[1]
+    try:
+        decoded_token = firebase_auth.verify_id_token(id_token)
+        uid = decoded_token["uid"]
+        email = request.get_json().get("email")
+        create_user_defaults(uid, email)
+        return jsonify({"success": True})
+    except Exception as e:
+        print(f"Auth or DB error: {e}")
+        return jsonify({"error": str(e)}), 400
+
+
+# Create escrow and premium transfer
 @app.route("/create_escrow", methods=["POST"])
 def create_conditional_escrow_route():
     data = request.get_json()
+    uid = get_user_from_token()
+    if not uid:
+        return jsonify({"error": "Unauthorized"}), 401
+
     premium = float(data.get("premium", 2))
     payout = float(data.get("payout", 5))
     customer_seed = data.get("customer_seed")
     destination = data.get("destination")
     return_addr = data.get("return_address")
-    condition = int(data.get("condition", 0))  # integer from 0 to 5
+    condition = int(data.get("condition", 0))
     shipment_name = data.get("shipment_name")
     device_id = data.get("device_id")
-    owner_id = data.get("owner_id")
 
-    if not all([customer_seed, destination, return_addr, shipment_name, device_id, owner_id]):
-        return jsonify({"error": "Missing required fields"}), 400
+    print("DEBUG input fields:", customer_seed, destination, return_addr, shipment_name, device_id)
 
+    if not all([customer_seed, destination, return_addr, shipment_name, device_id]):
+        return jsonify({
+            "error": "Missing required fields",
+            "debug": {
+                "customer_seed": customer_seed,
+                "destination": destination,
+                "return_addr": return_addr,
+                "shipment_name": shipment_name,
+                "device_id": device_id
+            }
+        }), 400
+        
     try:
         result = asyncio.run(create_escrow_with_premium(
             customer_seed=customer_seed,
@@ -51,7 +100,7 @@ def create_conditional_escrow_route():
         ))
 
         shipment_id = create_shipment(
-            owner_id=owner_id,
+            owner_id=uid,
             name=shipment_name,
             device_id=device_id,
             premium=premium,
@@ -69,18 +118,16 @@ def create_conditional_escrow_route():
         return jsonify({"error": str(e)}), 500
 
 
-# Fulfills conditional escrow TODO: move to XRPL utility
+# Fulfill escrow
 @app.route("/fulfill_escrow", methods=["POST"])
 def fulfill_escrow_route():
     data = request.get_json()
     shipment_id = data.get("shipment_id")
-
     if not shipment_id:
         return jsonify({"error": "Missing shipment_id"}), 400
 
     shipment = get_shipment_data(shipment_id)
     sequence = shipment.get("escrow_sequence")
-
     if not sequence:
         return jsonify({"error": "No escrow sequence found for shipment"}), 400
 
@@ -92,7 +139,7 @@ def fulfill_escrow_route():
         return jsonify({"error": str(e)}), 500
 
 
-# Cancels conditional escrow
+# Cancel escrow
 @app.route("/cancel_escrow", methods=["POST"])
 def cancel_escrow_route():
     data = request.get_json()
@@ -104,64 +151,62 @@ def cancel_escrow_route():
 
     shipment = get_shipment_data(shipment_id)
     sequence = shipment.get("escrow_sequence")
-
     if not sequence:
         return jsonify({"error": "No escrow sequence found for shipment"}), 400
 
     try:
         result = asyncio.run(cancel_escrow(int(sequence)))
-
-        # Set claim status based on reason
         if "success" in reason:
             update_claim_status(shipment_id, "N/A")
         else:
             update_claim_status(shipment_id, "rejected")
-
         return jsonify(result)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 
-# Returns shipments belonging to owner
+# Get shipments for logged-in user
 @app.route("/shipments")
 def shipments_by_uid_route():
-    uid = request.args.get("owner_id")
+    uid = get_user_from_token()
     if not uid:
-        return jsonify({"error": "Missing owner_id"}), 400
+        return jsonify({"error": "Unauthorized"}), 401
 
     shipments = get_shipments_by_uid(uid)
     return jsonify(shipments)
 
 
-# Returns the shipments parameters
+# Get shipment details
 @app.route("/shipment/<shipment_id>")
 def shipment_data_route(shipment_id):
     data = get_shipment_data(shipment_id)
     return jsonify(data)
 
 
-# Returns the events associated with a shipment
+# Get sensor events
 @app.route("/shipment/<shipment_id>/events")
 def shipment_event_data_route(shipment_id):
     event_data = get_event_data(shipment_id)
     return jsonify(event_data)
 
 
-# Links a shipment to a user
+# Assign shipment to current user
 @app.route("/assign_shipment", methods=["POST"])
 def assign_shipment():
     data = request.get_json()
-    uid = data.get("owner_id")
-    shipment_id = data.get("shipment_id")
+    uid = get_user_from_token()
+    if not uid:
+        return jsonify({"error": "Unauthorized"}), 401
 
-    if not uid or not shipment_id:
-        return jsonify({"error": "Missing owner_id or shipment_id"}), 400
+    shipment_id = data.get("shipment_id")
+    if not shipment_id:
+        return jsonify({"error": "Missing shipment_id"}), 400
 
     success = assign_shipment_to_user(uid, shipment_id)
     return jsonify({"success": success})
 
 
-# Updates a shipment's claim status
+# Update claim status
 @app.route("/update_claim", methods=["POST"])
 def update_claim():
     data = request.get_json()
@@ -175,7 +220,7 @@ def update_claim():
     return jsonify({"success": success})
 
 
-# Returns a shipment's claim status
+# Get claim status
 @app.route("/claim_status/<shipment_id>")
 def get_claim_status_route(shipment_id):
     status = get_claim_status(shipment_id)

@@ -77,7 +77,7 @@ async def create_escrow_with_premium(
     platform_address: str,
     premium: float,
     payout: float,
-    destination_address: str
+    destination_address: str  # This should match the customer address
 ) -> Dict[str, Union[int, str]]:
     """
     Processes the full insurance escrow setup:
@@ -89,40 +89,45 @@ async def create_escrow_with_premium(
         platform_address: Platform XRPL address receiving premium.
         premium: Premium amount in XRP.
         payout: Payout amount in XRP.
-        destination_address: Insured customer destination address.
+        destination_address: Customer XRPL address (should match customer_seed's address)
 
     Returns:
         Dictionary with escrow sequence, condition, fulfillment, and transaction hash.
     """
     client = get_ripple_client()
 
-    # Customer pays premium to platform
     customer_wallet = get_wallet(customer_seed)
+    platform_wallet = get_wallet(XRPL_SEED)
+
+    # Sanity check
+    assert customer_wallet.classic_address == destination_address, (
+        f"Destination mismatch: {customer_wallet.classic_address} vs {destination_address}"
+    )
+
+    # Customer pays premium to platform
     premium_tx = Payment(
         account=customer_wallet.classic_address,
-        destination=platform_address,
+        destination=platform_wallet.classic_address,
         amount=xrp_to_drops(premium)
     )
-    print(f"[create_escrow_with_premium] Paying {premium} XRP from {customer_wallet.classic_address} to {platform_address}")
+    print(f"[create_escrow_with_premium] Paying {premium} XRP from {customer_wallet.classic_address} to {platform_wallet.classic_address}")
     await submit_and_wait(premium_tx, client, customer_wallet)
 
-    # Platform creates conditional escrow
-    platform_wallet = get_wallet(XRPL_SEED)
+    # Create a fulfillment condition for the escrow
     condition, fulfillment = get_preimage_condition()
 
-    finish_after = datetime_to_ripple_time(datetime.now() + timedelta(seconds=10))
-    cancel_after = datetime_to_ripple_time(datetime.now() + timedelta(seconds=10))
+    # Platform creates escrow to send payout
+    cancel_after = datetime_to_ripple_time(datetime.now() + timedelta(minutes=10))
 
     escrow_tx = EscrowCreate(
         account=platform_wallet.classic_address,
-        destination=destination_address,
+        destination=customer_wallet.classic_address,
         amount=xrp_to_drops(payout),
-        finish_after=finish_after,
         cancel_after=cancel_after,
         condition=condition
     )
 
-    print(f"[create_escrow_with_premium] Creating payout escrow: {payout} XRP from {platform_wallet.classic_address} to {destination_address}")
+    print(f"[create_escrow_with_premium] Creating escrow of {payout} XRP from {platform_wallet.classic_address} to {customer_wallet.classic_address}")
     response = await submit_and_wait(escrow_tx, client, platform_wallet)
     sequence = response.result["tx_json"]["Sequence"]
 
@@ -130,9 +135,10 @@ async def create_escrow_with_premium(
         "sequence": sequence,
         "condition": condition,
         "fulfillment": fulfillment,
-        "destination": destination_address,
+        "destination": customer_wallet.classic_address,
         "tx_hash": response.result.get("hash")
     }
+
 
 async def fulfill_escrow(sequence: int) -> Dict[str, str]:
     """
