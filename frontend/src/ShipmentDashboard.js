@@ -24,18 +24,23 @@ L.Icon.Default.mergeOptions({
 function ShipmentDashboardPage() {
   const { shipmentId } = useParams();
   const [eventData, setEventData] = useState(null);
-  const [claimStatus, setClaimStatus] = useState("pending");
+  const [claimStatus, setClaimStatus] = useState("Not Found");
   const apiBase = process.env.REACT_APP_API || "http://localhost:5000";
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [eventRes, claimRes] = await Promise.all([
-          axios.get(`${apiBase}/shipment/${shipmentId}/events`),
-          axios.get(`${apiBase}/claim_status/${shipmentId}`),
+        const [eventRes, shipmentRes] = await Promise.all([
+          axios.get(`${apiBase}/shipment/${shipmentId}/events`),     // Sensor events
+          axios.get(`${apiBase}/shipment/${shipmentId}`),            // Metadata
         ]);
-        setEventData(eventRes.data);
-        setClaimStatus(claimRes.data?.status || "pending");
+
+        setEventData({
+          ...eventRes.data,
+          shipment_name: shipmentRes.data.shipment_name || shipmentId,
+          claim_status: shipmentRes.data.claim_status || "N/A",
+        });
+
       } catch (err) {
         console.error("Error fetching dashboard data:", err);
       }
@@ -45,6 +50,7 @@ function ShipmentDashboardPage() {
       fetchData();
     }
   }, [shipmentId]);
+
 
   if (!eventData) return <div>Loading dashboard...</div>;
 
@@ -61,7 +67,7 @@ function ShipmentDashboardPage() {
   return (
     <div style={{ padding: "2rem", fontFamily: "sans-serif" }}>
       <h2 style={{ fontWeight: 600, marginBottom: "1rem" }}>
-        Shipment: {shipmentId}
+        Shipment: {eventData.shipment_name}
       </h2>
 
       <div style={{ marginBottom: "2rem", borderRadius: "10px", overflow: "hidden", boxShadow: "0 2px 10px rgba(0,0,0,0.15)" }}>
@@ -90,10 +96,10 @@ function ShipmentDashboardPage() {
   <p style={{
     fontSize: "1.5rem",
     fontWeight: 600,
-    color: claimStatus === "approved" ? "#28a745" :
+    color: eventData.claim_status === "approved" ? "#28a745" :
            claimStatus === "rejected" ? "#dc3545" : "#ffc107"
   }}>
-    {claimStatus.toUpperCase()}
+    {eventData.claim_status.toUpperCase()}
   </p>
 
   {/* Last updated time */}
