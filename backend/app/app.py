@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import asyncio
+import requests
 
 from escrow_utils import create_escrow_with_premium, fulfill_escrow, cancel_escrow
 from firebase_client import (
@@ -38,6 +39,41 @@ def get_user_from_token():
     except Exception as e:
         print(f"[auth] Token verification failed: {e}")
         return None
+
+
+from firebase_client import get_user_wallet
+
+@app.route("/user_info", methods=["GET"])
+def get_user_info():
+    uid = get_user_from_token()
+    if not uid:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    wallet_address = get_user_wallet(uid)
+    if not wallet_address:
+        return jsonify({"error": "No wallet assigned to user"}), 404
+
+    # Query XRPL for balance
+    res = requests.post("https://s.altnet.rippletest.net:51234", json={
+        "method": "account_info",
+        "params": [{
+            "account": wallet_address,
+            "ledger_index": "validated",
+            "strict": True
+        }]
+    })
+
+    if res.status_code != 200 or "result" not in res.json():
+        return jsonify({"error": "Failed to fetch XRPL data"}), 500
+
+    drops = int(res.json()["result"]["account_data"]["Balance"])
+    balance_xrp = drops / 1_000_000
+
+    return jsonify({
+        "uid": uid,
+        "wallet_address": wallet_address,
+        "balance_xrp": balance_xrp
+    })
 
 
 # Initialize defaults for new user

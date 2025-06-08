@@ -31,7 +31,7 @@ function App() {
           <button className="menu-button" onClick={() => setSidebarOpen(!sidebarOpen)}>
             ☰
           </button>
-          <h1 className="app-title">$hypto</h1>
+          <h1 className="app-title">Shypto</h1>
         </header>
 
         <div className="main-layout">

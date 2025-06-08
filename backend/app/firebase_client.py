@@ -162,9 +162,15 @@ def create_user_defaults(uid, email):
         ref.set({
             "email": email,
             "owned_devices": {},
-            "created_at": datetime.utcnow().isoformat()
+            "created_at": datetime.utcnow().isoformat(),
+            # For Dev only: Real environment will have the customer enter this in
+            "wallet_address": "rJ76R7wNbZL9T1obJcovyiDMh7fZuWV3wz"
         })
         return True
     except Exception as e:
         print("Firebase error (create_user_defaults):", e)
         return False
+
+def get_user_wallet(uid):
+    ref = db.reference(f"/users/{uid}/wallet_address")
+    return ref.get()
